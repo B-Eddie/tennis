@@ -56,13 +56,9 @@ Used at `sessions/{sessionId}`:
 
 ## 5) Deploy notes for Vercel
 
-- Deploy `apps/game` and `apps/phone` as **separate Vercel projects**.
-- In **game project** Vercel settings, set:
-  - `VITE_FIREBASE_*` (same as `.env`)
-  - `VITE_PHONE_URL=https://<your-phone-deployment>.vercel.app`
-- In **phone project** Vercel settings, set:
-  - `VITE_FIREBASE_*` (same as `.env`)
-- In Firebase Console, add both Vercel domains to **Authorized domains** (Authentication settings) if you later add Auth.
+- One Vercel project, root = `apps/game`. Phone is served from `/phone.html` on the same domain.
+- In Vercel project settings, set all `VITE_FIREBASE_*` env vars to match your `.env`.
+- After deploy, the QR code automatically points to `https://<your-app>.vercel.app/phone.html?session=...`.
 
 ## 6) Verify
 

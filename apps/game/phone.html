@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Phone Tennis - Controller</title>
-    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/phone.css" />
   </head>
   <body>
     <div id="permissionModal" class="modal hidden">
@@ -19,12 +19,12 @@
     </div>
     <main id="app">
       <h1>Phone Controller</h1>
-      <p>Open the special link from the game screen. Then grant sensor permissions and swing your phone like a racket.</p>
+      <p>Scan the QR from the game screen to land here. Then grant sensor permissions and swing your phone like a racket.</p>
       <p id="sessionInfo"></p>
       <button id="connectBtn">Enable Sensors + Connect</button>
       <p id="status">Not connected</p>
       <pre id="stats"></pre>
     </main>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/phone.js"></script>
   </body>
-  </html>
+</html>

@@ -9,9 +9,7 @@ const joinLinkEl = document.querySelector("#joinLink");
 const joinQrEl = document.querySelector("#joinQr");
 
 const sessionId = crypto.randomUUID().slice(0, 8);
-const phoneBaseUrl =
-  import.meta.env.VITE_PHONE_URL ||
-  `${window.location.protocol}//${window.location.hostname}:5174`;
+const phoneBaseUrl = `${window.location.origin}/phone.html`;
 const joinLink = `${phoneBaseUrl}?session=${sessionId}`;
 joinLinkEl.href = joinLink;
 joinLinkEl.textContent = joinLink;

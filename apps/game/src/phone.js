@@ -55,7 +55,7 @@ function closePermissionPrompt() {
 async function connectToSession() {
   if (!sessionId) {
     statusEl.textContent =
-      "Missing session in URL. Use the special link/QR from the game screen.";
+      "Missing session in URL. Scan the QR code from the game screen.";
     return false;
   }
 

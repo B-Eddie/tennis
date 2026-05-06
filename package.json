@@ -6,8 +6,8 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently -n GAME,PHONE -c green,magenta \"npm run dev -w game\" \"npm run dev -w phone\"",
-    "build": "npm run build -w game && npm run build -w phone"
+    "dev": "npm run dev -w game",
+    "build": "npm run build -w game"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

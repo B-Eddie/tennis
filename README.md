@@ -1,16 +1,18 @@
-# Phone Tennis Base
+# Phone Tennis
 
-Starter project for a non-VR tennis game where:
+Non-VR tennis game where the desktop renders the scene and the phone is the racket controller. Sensor data is relayed through Firebase Realtime Database, so it works on Vercel without a backend server.
 
-- `apps/game` is the Three.js + Cannon.js desktop game scene
-- `apps/phone` is the phone controller using DeviceOrientation + DeviceMotion
-- `server` is a WebSocket relay between phone and game
-- Firebase Firestore is used for initial session persistence
+## Layout
+
+- `apps/game/` — Vite app, two pages:
+  - `/` — Three.js + Cannon.js game scene (desktop)
+  - `/phone.html` — phone controller (DeviceOrientation + DeviceMotion)
+- `docs/firebase-setup.md` — Firebase RTDB setup
 
 ## Prerequisites
 
 - Node.js 20+
-- A phone and desktop on the same local network (for real device testing)
+- Firebase project with Realtime Database enabled (see `docs/firebase-setup.md`)
 
 ## Install
 
@@ -18,35 +20,22 @@ Starter project for a non-VR tennis game where:
 npm install
 ```
 
-## Run everything
+## Run locally
 
 ```bash
 npm run dev
 ```
 
-Services:
+- Game: `https://localhost:5173/`
+- Phone: `https://localhost:5173/phone.html` (the QR code generates a session-specific URL)
 
-- WebSocket relay: `ws://localhost:8080`
-- Game app: `https://localhost:5173`
-- Phone controller app: `https://localhost:5174`
+## Deploy
 
-HTTPS notes:
-
-- Vite runs with a local self-signed cert in dev.
-- On phone, open the HTTPS game link and accept/trust the browser warning page first.
-- WebSocket traffic is exposed as secure `wss://.../socket` on each app and proxied to the local relay server.
-
-## Firebase
-
-See `docs/firebase-setup.md` for full setup instructions.
-
-Quick start:
-
-1. Copy `apps/phone/.env.example` to `apps/phone/.env`
-2. Fill with your Firebase project config
-3. Enable Firestore in Firebase Console
+- Single Vercel project pointing at `apps/game`.
+- Set `VITE_FIREBASE_*` env vars in Vercel.
+- The QR code automatically points to `<your-domain>/phone.html?session=...`.
 
 ## Notes
 
 - iOS requires user interaction before granting motion/orientation permissions.
-- This is a base scaffold. Networking sync, hit detection tuning, match flow, and production security still need to be built.
+- The local dev server uses a self-signed certificate; accept the browser warning when first opening on phone.
