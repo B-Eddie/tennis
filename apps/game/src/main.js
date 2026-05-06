@@ -34,8 +34,8 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   100
 );
-camera.position.set(0, 2.5, 5.5);
-camera.lookAt(0, 1.2, 0);
+camera.position.set(0, 1.6, 2.5);
+camera.lookAt(0, 1.4, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -53,11 +53,12 @@ const floorMesh = new THREE.Mesh(
 floorMesh.rotation.x = -Math.PI / 2;
 scene.add(floorMesh);
 
+const RACKET_HOME = new THREE.Vector3(0, 1.4, 0);
 const racketMesh = new THREE.Mesh(
   new THREE.BoxGeometry(0.5, 0.9, 0.08),
   new THREE.MeshStandardMaterial({ color: "#4dd6ff" })
 );
-racketMesh.position.set(0, 1.2, 2);
+racketMesh.position.copy(RACKET_HOME);
 scene.add(racketMesh);
 
 const ballMesh = new THREE.Mesh(
@@ -84,8 +85,10 @@ world.addBody(ballBody);
 
 let phoneState = {
   orientation: { alpha: 0, beta: 0, gamma: 0 },
-  motion: { x: 0, y: 0, z: 0 }
+  motion: { x: 0, y: 0, z: 0 },
+  screenOrientation: 0
 };
+let calibrationInverse = null;
 
 const sessionRef = ref(rtdb, `sessions/${sessionId}`);
 const controllerRef = ref(rtdb, `sessions/${sessionId}/controller`);
@@ -107,23 +110,55 @@ onValue(controllerRef, (snapshot) => {
   if (!data) return;
   phoneState = {
     orientation: data.orientation ?? phoneState.orientation,
-    motion: data.motion ?? phoneState.motion
+    motion: data.motion ?? phoneState.motion,
+    screenOrientation: data.screenOrientation ?? phoneState.screenOrientation
   };
-  statusEl.textContent = "Phone connected. Move your device to swing.";
+  statusEl.textContent = "Phone connected. Press C to recalibrate neutral pose.";
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "c" || event.key === "C") {
+    calibrationInverse = null;
+  }
 });
 
 const fixedTimeStep = 1 / 60;
 let lastTime = performance.now() / 1000;
 
+const _zee = new THREE.Vector3(0, 0, 1);
+const _euler = new THREE.Euler();
+const _q0 = new THREE.Quaternion();
+const _q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+const _phoneQuat = new THREE.Quaternion();
+const _targetQuat = new THREE.Quaternion();
+
+function quaternionFromDeviceOrientation(quat, alphaDeg, betaDeg, gammaDeg, screenDeg) {
+  const alpha = THREE.MathUtils.degToRad(alphaDeg || 0);
+  const beta = THREE.MathUtils.degToRad(betaDeg || 0);
+  const gamma = THREE.MathUtils.degToRad(gammaDeg || 0);
+  const orient = THREE.MathUtils.degToRad(screenDeg || 0);
+
+  _euler.set(beta, alpha, -gamma, "YXZ");
+  quat.setFromEuler(_euler);
+  quat.multiply(_q1);
+  quat.multiply(_q0.setFromAxisAngle(_zee, -orient));
+}
+
 function updateRacketFromPhone() {
-  const { beta, gamma } = phoneState.orientation;
+  const { alpha, beta, gamma } = phoneState.orientation;
   const { x, y, z } = phoneState.motion;
+  const screen = phoneState.screenOrientation;
 
-  racketMesh.rotation.x = THREE.MathUtils.degToRad(beta * 0.6);
-  racketMesh.rotation.z = THREE.MathUtils.degToRad(-gamma * 0.8);
+  quaternionFromDeviceOrientation(_phoneQuat, alpha, beta, gamma, screen);
 
-  racketMesh.position.x = THREE.MathUtils.clamp(gamma * 0.015, -1.5, 1.5);
-  racketMesh.position.y = THREE.MathUtils.clamp(1.2 + beta * 0.005, 0.7, 2.1);
+  if (!calibrationInverse) {
+    calibrationInverse = _phoneQuat.clone().invert();
+  }
+
+  _targetQuat.copy(calibrationInverse).multiply(_phoneQuat);
+  racketMesh.quaternion.slerp(_targetQuat, 0.35);
+
+  racketMesh.position.copy(RACKET_HOME);
 
   const swingPower = Math.sqrt(x * x + y * y + z * z);
   const distance = racketMesh.position.distanceTo(

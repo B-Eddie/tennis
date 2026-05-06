@@ -12,7 +12,6 @@ const sessionId = new URLSearchParams(window.location.search).get("session");
 
 let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
 let latestMotion = { x: 0, y: 0, z: 0 };
-let streamInterval;
 let isStreaming = false;
 let orientationEventCount = 0;
 let motionEventCount = 0;
@@ -109,8 +108,20 @@ function startStreaming() {
 
   const controllerRef = ref(rtdb, `sessions/${sessionId}/controller`);
 
+  function getScreenOrientationDeg() {
+    if (typeof screen !== "undefined" && screen.orientation?.angle != null) {
+      return screen.orientation.angle;
+    }
+    if (typeof window.orientation === "number") return window.orientation;
+    return 0;
+  }
+
   streamInterval = setInterval(() => {
-    const payload = { orientation: latestOrientation, motion: latestMotion };
+    const payload = {
+      orientation: latestOrientation,
+      motion: latestMotion,
+      screenOrientation: getScreenOrientationDeg()
+    };
     const debug = {
       sessionId,
       secureContext: window.isSecureContext,
