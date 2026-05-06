@@ -1,0 +1,19 @@
+{
+  "name": "game",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host --port 5173",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "cannon-es": "^0.20.0",
+    "qrcode": "^1.5.4",
+    "three": "^0.179.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.1.0",
+    "vite": "^7.1.3"
+  }
+}

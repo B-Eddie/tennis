@@ -1,0 +1,17 @@
+{
+  "name": "phone",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host --port 5174",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "firebase": "^12.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.1.0",
+    "vite": "^7.1.3"
+  }
+}

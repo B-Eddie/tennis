@@ -1,0 +1,13 @@
+{
+  "name": "server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "build": "echo \"No build step for server\""
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}

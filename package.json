@@ -1,0 +1,19 @@
+{
+  "name": "phone-tennis",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n SERVER,GAME,PHONE -c blue,green,magenta \"npm run dev -w server\" \"npm run dev -w game\" \"npm run dev -w phone\"",
+    "build": "npm run build -w game && npm run build -w phone && npm run build -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "uuid": "^14.0.0"
+  }
+}
