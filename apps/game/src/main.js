@@ -1,15 +1,17 @@
 import * as THREE from "three";
 import * as CANNON from "cannon-es";
 import QRCode from "qrcode";
+import { onValue, ref, set, onDisconnect, serverTimestamp } from "firebase/database";
+import { rtdb } from "./firebase";
 
-const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-const SERVER_URL = `${wsProtocol}://${window.location.host}/socket`;
 const statusEl = document.querySelector("#status");
 const joinLinkEl = document.querySelector("#joinLink");
 const joinQrEl = document.querySelector("#joinQr");
 
-const sessionId = crypto.randomUUID();
-const phoneBaseUrl = `${window.location.protocol}//${window.location.hostname}:5174`;
+const sessionId = crypto.randomUUID().slice(0, 8);
+const phoneBaseUrl =
+  import.meta.env.VITE_PHONE_URL ||
+  `${window.location.protocol}//${window.location.hostname}:5174`;
 const joinLink = `${phoneBaseUrl}?session=${sessionId}`;
 joinLinkEl.href = joinLink;
 joinLinkEl.textContent = joinLink;
@@ -87,36 +89,30 @@ let phoneState = {
   motion: { x: 0, y: 0, z: 0 }
 };
 
-let ws;
-function connectSocket() {
-  ws = new WebSocket(SERVER_URL);
+const sessionRef = ref(rtdb, `sessions/${sessionId}`);
+const controllerRef = ref(rtdb, `sessions/${sessionId}/controller`);
 
-  ws.onopen = () => {
-    ws.send(JSON.stringify({ type: "register", role: "game", sessionId }));
-    statusEl.textContent = "Connected to relay server. Waiting for phone...";
+set(ref(rtdb, `sessions/${sessionId}/game`), {
+  createdAt: serverTimestamp(),
+  online: true
+})
+  .then(() => {
+    statusEl.textContent = "Session ready. Waiting for phone to scan QR...";
+    onDisconnect(sessionRef).remove();
+  })
+  .catch((err) => {
+    statusEl.textContent = `Could not create session: ${err.message}`;
+  });
+
+onValue(controllerRef, (snapshot) => {
+  const data = snapshot.val();
+  if (!data) return;
+  phoneState = {
+    orientation: data.orientation ?? phoneState.orientation,
+    motion: data.motion ?? phoneState.motion
   };
-
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-
-    if (data.type === "controller-state") {
-      phoneState = data.payload;
-      statusEl.textContent = "Phone connected. Move your device to swing.";
-    }
-
-    if (data.type === "system") {
-      statusEl.textContent = data.hasPhone
-        ? "Phone connected. Move your device to swing."
-        : "Waiting for phone to connect via your special link...";
-    }
-  };
-
-  ws.onclose = () => {
-    statusEl.textContent = "Relay disconnected. Reconnecting...";
-    setTimeout(connectSocket, 1000);
-  };
-}
-connectSocket();
+  statusEl.textContent = "Phone connected. Move your device to swing.";
+});
 
 const fixedTimeStep = 1 / 60;
 let lastTime = performance.now() / 1000;

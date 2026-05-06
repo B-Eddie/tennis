@@ -1,8 +1,6 @@
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "./firebase";
+import { ref, set, onDisconnect, serverTimestamp } from "firebase/database";
+import { rtdb } from "./firebase";
 
-const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-const SERVER_URL = `${wsProtocol}://${window.location.host}/socket`;
 const connectBtn = document.querySelector("#connectBtn");
 const statusEl = document.querySelector("#status");
 const statsEl = document.querySelector("#stats");
@@ -12,11 +10,9 @@ const enableSensorsBtn = document.querySelector("#enableSensorsBtn");
 const maybeLaterBtn = document.querySelector("#maybeLaterBtn");
 const sessionId = new URLSearchParams(window.location.search).get("session");
 
-let ws;
 let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
 let latestMotion = { x: 0, y: 0, z: 0 };
 let streamInterval;
-let isLoggingSession = false;
 let isStreaming = false;
 let orientationEventCount = 0;
 let motionEventCount = 0;
@@ -56,25 +52,27 @@ function closePermissionPrompt() {
   permissionModalEl.classList.add("hidden");
 }
 
-function connectSocket() {
-  ws = new WebSocket(SERVER_URL);
-
-  ws.onopen = () => {
-    ws.send(JSON.stringify({ type: "register", role: "phone", sessionId }));
-    statusEl.textContent = "Connected. Streaming sensor data...";
-  };
-
-  ws.onclose = () => {
-    statusEl.textContent = "Disconnected. Tap button to reconnect.";
-    clearInterval(streamInterval);
-    isLoggingSession = false;
-    isStreaming = false;
-  };
-
-  ws.onerror = () => {
+async function connectToSession() {
+  if (!sessionId) {
     statusEl.textContent =
-      "Socket failed. Make sure phone and computer are on same network.";
-  };
+      "Missing session in URL. Use the special link/QR from the game screen.";
+    return false;
+  }
+
+  try {
+    const phoneRef = ref(rtdb, `sessions/${sessionId}/phone`);
+    await set(phoneRef, {
+      online: true,
+      connectedAt: serverTimestamp(),
+      device: navigator.userAgent
+    });
+    onDisconnect(phoneRef).set({ online: false });
+    statusEl.textContent = "Connected via Firebase. Streaming sensor data...";
+    return true;
+  } catch (err) {
+    statusEl.textContent = `Connect error: ${err.message}`;
+    return false;
+  }
 }
 
 function startStreaming() {
@@ -109,7 +107,9 @@ function startStreaming() {
     }
   }, 3000);
 
-  streamInterval = setInterval(async () => {
+  const controllerRef = ref(rtdb, `sessions/${sessionId}/controller`);
+
+  streamInterval = setInterval(() => {
     const payload = { orientation: latestOrientation, motion: latestMotion };
     const debug = {
       sessionId,
@@ -120,34 +120,17 @@ function startStreaming() {
     };
     statsEl.textContent = JSON.stringify(debug, null, 2);
 
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "controller-state", payload }));
-    }
-
-    if (!isLoggingSession) {
-      isLoggingSession = true;
-      try {
-        await addDoc(collection(db, "controller_sessions"), {
-          createdAt: serverTimestamp(),
-          deviceInfo: navigator.userAgent
-        });
-      } catch (err) {
-        console.error("Failed to write Firebase session:", err);
-      }
-    }
+    set(controllerRef, payload).catch((err) => {
+      console.error("Failed to write controller state:", err);
+    });
   }, 50);
 }
 
 connectBtn.addEventListener("click", async () => {
-  if (!sessionId) {
-    statusEl.textContent =
-      "Missing session in URL. Use the special link shown on the game screen.";
-    return;
-  }
-
   try {
     await ensureSensorPermissions();
-    connectSocket();
+    const ok = await connectToSession();
+    if (ok) startStreaming();
   } catch (err) {
     statusEl.textContent = `Permission/connect error: ${err.message}`;
   }
@@ -169,10 +152,10 @@ maybeLaterBtn.addEventListener("click", () => {
 });
 
 if (sessionId) {
-  sessionInfoEl.textContent = `Session: ${sessionId} | Server: ${SERVER_URL}`;
+  sessionInfoEl.textContent = `Session: ${sessionId}`;
 } else {
   sessionInfoEl.textContent =
-    "No session found. Open this page from the special game link.";
+    "No session found. Scan the QR code from the game screen.";
 }
 
 if (needsGesturePermissionFlow()) {

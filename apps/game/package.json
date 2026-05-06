@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "cannon-es": "^0.20.0",
+    "firebase": "^12.12.1",
     "qrcode": "^1.5.4",
     "three": "^0.179.1"
   },
