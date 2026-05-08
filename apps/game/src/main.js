@@ -313,11 +313,6 @@ function hitBlock(block) {
   score++;
 
   console.log("Block hit! Score:", score);
-  // send vibration to firebase
-  set(ref(rtdb, `sessions/${sessionId}/vibrate`), {
-    timestamp: Date.now(),
-  }).catch((err) => console.error("Failed to send vibrate signal:", err));
-  console.log("Sent vibrate command to phone via Firebase.");
 }
 
 function updateCollisions() {

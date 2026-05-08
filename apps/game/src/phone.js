@@ -1,6 +1,5 @@
 import { ref, set, onDisconnect, serverTimestamp } from "firebase/database";
 import { rtdb } from "./firebase";
-import { onValue } from "firebase/database";
 
 const sessionId = new URLSearchParams(window.location.search).get("session");
 
@@ -14,12 +13,6 @@ let orientationEventCount = 0;
 let motionEventCount = 0;
 let lastSensorEventAt = 0;
 let sensorHealthTimeout;
-
-function vibrate() {
-  if (navigator.vibrate) {
-    navigator.vibrate(100);
-  }
-}
 
 async function ensureSensorPermissions() {
   if (
@@ -74,21 +67,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       onDisconnect(phoneRef).set({ online: false });
       statusEl.textContent = "Connected via Firebase. Streaming sensor data...";
-      onValue(
-        ref(rtdb, `sessions/${sessionId}/vibrate`),
-        (snapshot) => {
-          console.log("Vibrate listener fired:", snapshot.val());
-          const data = snapshot.val();
-          if (data) {
-            console.log("Vibrating...");
-            vibrate();
-          }
-        },
-        (error) => {
-          console.error("Vibrate listener error:", error);
-          statusEl.textContent = `Database read error: ${error.message}`;
-        },
-      );
       return true;
     } catch (err) {
       statusEl.textContent = `Connect error: ${err.message}`;
