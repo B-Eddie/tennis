@@ -117,7 +117,7 @@ scene.add(new THREE.AmbientLight(0xffffff, 0.45));
 // scene.add(floorMesh);
 
 const bgLoader = new GLTFLoader();
-bgLoader.load("./src/assets/scene.glb", (gltf) => {
+bgLoader.load("/assets/scene.glb", (gltf) => {
   const bg = gltf.scene;
 
   bg.position.set(0, -10, -10);
@@ -132,7 +132,7 @@ const SABER_HOME = new THREE.Vector3(0, 1.4, 0);
 const loader = new GLTFLoader();
 
 let saberMesh = null;
-loader.load("./src/assets/saber.glb", (gltf) => {
+loader.load("/assets/saber.glb", (gltf) => {
   saberMesh = new THREE.Group();
 
   gltf.scene.rotation.z = Math.PI / 2;
@@ -260,7 +260,7 @@ class Block {
     // hit detection
     this.boundingBox = new THREE.Box3();
 
-    this.mesh = loader.load("./src/assets/block.glb", (gltf) => {
+    this.mesh = loader.load("/assets/block.glb", (gltf) => {
       this.mesh = gltf.scene;
       gltf.scene.scale.set(0.2, 0.2, 0.2);
       gltf.scene.rotateY(-Math.PI / 2);
