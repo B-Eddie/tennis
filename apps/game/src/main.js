@@ -1,8 +1,15 @@
 import * as THREE from "three";
-import * as CANNON from "cannon-es";
 import QRCode from "qrcode";
-import { onValue, ref, set, onDisconnect, serverTimestamp } from "firebase/database";
+import {
+  onValue,
+  ref,
+  set,
+  onDisconnect,
+  serverTimestamp,
+} from "firebase/database";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { rtdb } from "./firebase";
+import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 
 const statusEl = document.querySelector("#status");
 const joinLinkEl = document.querySelector("#joinLink");
@@ -16,7 +23,7 @@ joinLinkEl.textContent = joinLink;
 
 QRCode.toDataURL(joinLink, {
   width: 320,
-  margin: 1
+  margin: 1,
 })
   .then((dataUrl) => {
     joinQrEl.src = dataUrl;
@@ -26,16 +33,72 @@ QRCode.toDataURL(joinLink, {
   });
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color("#171b26");
+scene.background = new THREE.Color("#000");
 
 const camera = new THREE.PerspectiveCamera(
   70,
   window.innerWidth / window.innerHeight,
   0.1,
-  100
+  100,
 );
-camera.position.set(0, 1.6, 2.5);
-camera.lookAt(0, 1.4, 0);
+camera.position.set(0, 4, 2);
+camera.lookAt(0, 3, 0); // 0, 1.4, 0
+
+const controls = new PointerLockControls(camera, document.body);
+scene.add(controls.getObject());
+
+// click to lock
+document.addEventListener("click", () => {
+  controls.lock();
+});
+
+// WASD state
+const keys = {
+  w: false,
+  a: false,
+  s: false,
+  d: false,
+  shift: false,
+};
+
+window.addEventListener("keydown", (event) => {
+  if (event.code === "KeyW") keys.w = true;
+  if (event.code === "KeyA") keys.a = true;
+  if (event.code === "KeyS") keys.s = true;
+  if (event.code === "KeyD") keys.d = true;
+  if (event.code === "ShiftLeft" || event.code === "ShiftRight")
+    keys.shift = true;
+});
+
+window.addEventListener("keyup", (event) => {
+  if (event.code === "KeyW") keys.w = false;
+  if (event.code === "KeyA") keys.a = false;
+  if (event.code === "KeyS") keys.s = false;
+  if (event.code === "KeyD") keys.d = false;
+  if (event.code === "ShiftLeft" || event.code === "ShiftRight")
+    keys.shift = false;
+});
+
+const moveSpeed = 4.0;
+const fastSpeed = 8.0;
+const velocity = new THREE.Vector3();
+const forward = new THREE.Vector3();
+const right = new THREE.Vector3();
+
+function updateCamera(delta) {
+  if (!controls.isLocked) return;
+
+  const speed = keys.shift ? fastSpeed : moveSpeed;
+  const amount = speed * delta;
+
+  forward.set(0, 0, -1).applyQuaternion(camera.quaternion);
+  right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+
+  if (keys.w) controls.getObject().position.addScaledVector(forward, amount);
+  if (keys.s) controls.getObject().position.addScaledVector(forward, -amount);
+  if (keys.d) controls.getObject().position.addScaledVector(right, amount);
+  if (keys.a) controls.getObject().position.addScaledVector(right, -amount);
+}
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -46,56 +109,61 @@ light.position.set(3, 5, 2);
 scene.add(light);
 scene.add(new THREE.AmbientLight(0xffffff, 0.45));
 
-const floorMesh = new THREE.Mesh(
-  new THREE.PlaneGeometry(14, 24),
-  new THREE.MeshStandardMaterial({ color: "#2f3b45" })
-);
-floorMesh.rotation.x = -Math.PI / 2;
-scene.add(floorMesh);
+// const floorMesh = new THREE.Mesh(
+//   new THREE.PlaneGeometry(14, 24),
+//   new THREE.MeshStandardMaterial({ color: "#336699" }),
+// );
+// floorMesh.rotation.x = -Math.PI / 2;
+// scene.add(floorMesh);
 
-const RACKET_HOME = new THREE.Vector3(0, 1.4, 0);
-const racketMesh = new THREE.Mesh(
-  new THREE.BoxGeometry(0.5, 0.9, 0.08),
-  new THREE.MeshStandardMaterial({ color: "#4dd6ff" })
-);
-racketMesh.position.copy(RACKET_HOME);
-scene.add(racketMesh);
+const bgLoader = new GLTFLoader();
+bgLoader.load("./src/assets/scene.glb", (gltf) => {
+  const bg = gltf.scene;
 
-const ballMesh = new THREE.Mesh(
-  new THREE.SphereGeometry(0.12, 24, 24),
-  new THREE.MeshStandardMaterial({ color: "#ffe45e" })
-);
-scene.add(ballMesh);
+  bg.position.set(0, -10, -10);
+  bg.rotateY(-Math.PI / 2);
+  bg.scale.set(0.5, 0.5, 0.5);
 
-const world = new CANNON.World({
-  gravity: new CANNON.Vec3(0, -9.82, 0)
+  scene.add(bg);
 });
 
-const floorBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
-floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-world.addBody(floorBody);
+// load in saber model
+const SABER_HOME = new THREE.Vector3(0, 1.4, 0);
+const loader = new GLTFLoader();
 
-const ballBody = new CANNON.Body({
-  mass: 0.08,
-  shape: new CANNON.Sphere(0.12),
-  position: new CANNON.Vec3(0, 1.6, -3)
+let saberMesh = null;
+loader.load("./src/assets/saber.glb", (gltf) => {
+  saberMesh = new THREE.Group();
+
+  gltf.scene.rotation.z = Math.PI / 2;
+  gltf.scene.translateX(-1.5);
+
+  // loaded model inside the group
+  const bbox = new THREE.Box3().setFromObject(gltf.scene);
+  const center = bbox.getCenter(new THREE.Vector3());
+  gltf.scene.position.sub(center);
+
+  saberMesh.add(gltf.scene);
+  scene.add(saberMesh);
+  saberMesh.position.set(SABER_HOME);
 });
-ballBody.linearDamping = 0.02;
-world.addBody(ballBody);
 
 let phoneState = {
   orientation: { alpha: 0, beta: 0, gamma: 0 },
-  motion: { x: 0, y: 0, z: 0 },
-  screenOrientation: 0
+  gyro: { alpha: 0, beta: 0, gamma: 0 },
+  sampleTs: 0,
+  screenOrientation: 0,
 };
+
 let calibrationInverse = null;
+let lastSampleTs = 0;
 
 const sessionRef = ref(rtdb, `sessions/${sessionId}`);
 const controllerRef = ref(rtdb, `sessions/${sessionId}/controller`);
 
 set(ref(rtdb, `sessions/${sessionId}/game`), {
   createdAt: serverTimestamp(),
-  online: true
+  online: true,
 })
   .then(() => {
     statusEl.textContent = "Session ready. Waiting for phone to scan QR...";
@@ -110,15 +178,20 @@ onValue(controllerRef, (snapshot) => {
   if (!data) return;
   phoneState = {
     orientation: data.orientation ?? phoneState.orientation,
-    motion: data.motion ?? phoneState.motion,
-    screenOrientation: data.screenOrientation ?? phoneState.screenOrientation
+    gyro: data.gyro ?? phoneState.gyro,
+    sampleTs: data.sampleTs ?? phoneState.sampleTs,
+    screenOrientation: data.screenOrientation ?? phoneState.screenOrientation,
   };
-  statusEl.textContent = "Phone connected. Press C to recalibrate neutral pose.";
+  statusEl.textContent =
+    "Phone connected. Press C to recalibrate neutral pose.";
 });
 
+// recallibrate
 window.addEventListener("keydown", (event) => {
   if (event.key === "c" || event.key === "C") {
     calibrationInverse = null;
+    // transientVelocity.set(0, 0, 0);
+    // transientOffset.set(0, 0, 0);
   }
 });
 
@@ -132,7 +205,13 @@ const _q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
 const _phoneQuat = new THREE.Quaternion();
 const _targetQuat = new THREE.Quaternion();
 
-function quaternionFromDeviceOrientation(quat, alphaDeg, betaDeg, gammaDeg, screenDeg) {
+function quaternionFromDeviceOrientation(
+  quat,
+  alphaDeg,
+  betaDeg,
+  gammaDeg,
+  screenDeg,
+) {
   const alpha = THREE.MathUtils.degToRad(alphaDeg || 0);
   const beta = THREE.MathUtils.degToRad(betaDeg || 0);
   const gamma = THREE.MathUtils.degToRad(gammaDeg || 0);
@@ -145,8 +224,8 @@ function quaternionFromDeviceOrientation(quat, alphaDeg, betaDeg, gammaDeg, scre
 }
 
 function updateRacketFromPhone() {
+  if (!saberMesh) return;
   const { alpha, beta, gamma } = phoneState.orientation;
-  const { x, y, z } = phoneState.motion;
   const screen = phoneState.screenOrientation;
 
   quaternionFromDeviceOrientation(_phoneQuat, alpha, beta, gamma, screen);
@@ -156,21 +235,108 @@ function updateRacketFromPhone() {
   }
 
   _targetQuat.copy(calibrationInverse).multiply(_phoneQuat);
-  racketMesh.quaternion.slerp(_targetQuat, 0.35);
+  saberMesh.quaternion.slerp(_targetQuat, 0.35);
+  saberMesh.position.copy(SABER_HOME);
+}
 
-  racketMesh.position.copy(RACKET_HOME);
+// =========== block spawning ============
+const blocks = [];
+const RADIUS = 0.8;
+const TOTAL_LANES = 8;
+const CENTER_Z = -10; // block spawn along parallel
+const SPAWN_Y = 1; // where blocks spawn
+const BLOCK_SPEED = 3;
 
-  const swingPower = Math.sqrt(x * x + y * y + z * z);
-  const distance = racketMesh.position.distanceTo(
-    new THREE.Vector3(ballBody.position.x, ballBody.position.y, ballBody.position.z)
-  );
+let lastBlockSpawn = 0;
+let score = 0;
+let saberBox = new THREE.Box3();
 
-  if (distance < 0.55 && swingPower > 11) {
-    ballBody.velocity.set(
-      racketMesh.position.x * 0.7,
-      1.6 + swingPower * 0.05,
-      -6 - swingPower * 0.18
-    );
+class Block {
+  constructor(lane = 0, speed = BLOCK_SPEED) {
+    this.lane = lane;
+    this.speed = speed;
+    this.mesh = null;
+    this.hit = false;
+    // hit detection
+    this.boundingBox = new THREE.Box3();
+
+    this.mesh = loader.load("./src/assets/block.glb", (gltf) => {
+      this.mesh = gltf.scene;
+      gltf.scene.scale.set(0.2, 0.2, 0.2);
+      gltf.scene.rotateY(-Math.PI / 2);
+      const angle = (lane / TOTAL_LANES) * Math.PI * 2;
+      const x = Math.cos(angle) * RADIUS - 0.3;
+      const y = Math.sin(angle) * RADIUS + SPAWN_Y;
+      this.mesh.position.set(x, y, CENTER_Z);
+      this.mesh.updateMatrixWorld(true);
+      scene.add(this.mesh);
+
+      this.boundingBox.setFromObject(this.mesh);
+    });
+  }
+
+  update(dt) {
+    if (!this.mesh) return;
+    this.mesh.position.z += this.speed * dt;
+    this.mesh.updateMatrixWorld(true);
+    this.boundingBox.setFromObject(this.mesh);
+  }
+
+  destroy() {
+    scene.remove(this.mesh);
+  }
+}
+
+// spawn helper
+function spawnBlock(lane = 0, speed = BLOCK_SPEED) {
+  const block = new Block(lane, speed);
+  blocks.push(block);
+  return block;
+}
+
+function spawner(now) {
+  if (now - lastBlockSpawn > 1) {
+    const lane = Math.floor(Math.random() * TOTAL_LANES);
+    spawnBlock(lane);
+    lastBlockSpawn = now;
+  }
+}
+
+// hit detection
+const HIT_WINDOW = 0.5; // hit tolerance
+
+function hitBlock(block) {
+  block.hit = true;
+  block.destroy();
+  const i = blocks.indexOf(block);
+  if (i > -1) blocks.splice(i, 1);
+  score++;
+
+  console.log("Block hit! Score:", score);
+  // send vibration to firebase
+  set(ref(rtdb, `sessions/${sessionId}/vibrate`), {
+    timestamp: Date.now(),
+  }).catch((err) => console.error("Failed to send vibrate signal:", err));
+  console.log("Sent vibrate command to phone via Firebase.");
+}
+
+function updateCollisions() {
+  if (!saberMesh) return;
+  saberMesh.updateMatrixWorld(true);
+  saberBox.setFromObject(saberMesh);
+
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const block = blocks[i];
+    if (!block.mesh) continue;
+    if (saberBox.intersectsBox(block.boundingBox)) {
+      hitBlock(block);
+    }
+  }
+}
+
+function updateBlocks(delta) {
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    blocks[i].update(delta);
   }
 }
 
@@ -180,14 +346,15 @@ function loop() {
   lastTime = now;
 
   updateRacketFromPhone();
-  world.step(fixedTimeStep, delta, 4);
 
-  if (ballBody.position.z < -12 || ballBody.position.y < -1) {
-    ballBody.position.set(0, 1.6, -3);
-    ballBody.velocity.set(0, 0, 0);
-  }
+  // camera
+  updateCamera(delta);
 
-  ballMesh.position.copy(ballBody.position);
+  // blocks
+  spawner(now);
+  updateBlocks(delta);
+  updateCollisions();
+
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
