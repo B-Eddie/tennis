@@ -11,5 +11,8 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "essentia.js": "^0.1.3"
   }
 }

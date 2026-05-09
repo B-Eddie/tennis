@@ -8,12 +8,67 @@
   </head>
   <body>
     <div id="hud">
-      <h1>Phone Tennis (Desktop Game)</h1>
-      <p id="status">Connecting to relay server...</p>
-      <p>Scan this QR code on your phone:</p>
-      <img id="joinQr" alt="Phone join QR code" />
-      <p><a id="joinLink" href="#" target="_blank" rel="noreferrer">Generating secure link...</a></p>
-      <p style="opacity: 0.7; font-size: 0.8rem;">Tip: hold your phone in your "neutral" pose, then press <kbd>C</kbd> to recalibrate.</p>
+      <h1 style="font-size: 2rem;" id="gameTitle">Phone Tennis (Desktop Game)</h1>
+      <div id="helpModal" class="modal" style="display: none;">
+        <div class="modal-card">
+          <h2>Help</h2>
+          <p>Press ? to see commands.</p>
+          <p>Press C to recalibrate neutral pose.</p>
+          <p>Press P to pause the game.</p>
+        </div>
+      </div>
+      <div id="pauseModal" class="modal" style="display: none;">
+        <div class="modal-card">
+          <h2>Pause Game</h2>
+          <p>Press P to resume the game.</p>
+        </div>
+      </div>
+      <div id="gameFinish" class="modal" style="display: none;">
+        <div class="modal-card">
+          <h2>Game Finished</h2>
+          <p>You scored <span id="score">0</span> points.</p>
+        </div>
+      </div>
+      <div id="joinContainer">
+        <p id="status">Connecting to server...</p>
+        <img id="joinQr" alt="Phone join QR code" />
+        <p>
+          <a id="joinLink" href="#" target="_blank" rel="noreferrer"
+            >Generating secure link...</a
+          >
+        </p>
+        <p style="opacity: 0.7; font-size: 0.8rem">
+          Tip: press
+          <kbd style="background: #2f3b56; padding: 2px 4px; border-radius: 4px"
+            >?</kbd
+          >
+          to see commands.
+        </p>
+        <br />
+      </div>
+      <div style="display: none" id="gameContainer">
+        <button type="button" id="startGameButton">Start Game</button>
+      </div>
+      <form
+        id="musicForm"
+        class="music-form"
+        aria-label="Upload background music"
+      >
+        <span class="music-form__title">Background music</span>
+        <p class="music-form__hint">MP3 or WAV</p>
+        <div class="music-form__row">
+          <input
+            type="file"
+            id="musicFile"
+            name="music"
+            class="music-form__input"
+            accept=".mp3,.wav,audio/mpeg,audio/wav"
+          />
+          <button type="submit" id="analyzeButton" class="music-form__submit">
+            Analyze &amp; use track
+          </button>
+        </div>
+      </form>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
