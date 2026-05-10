@@ -50,6 +50,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const permissionModalEl = document.querySelector("#permissionModal");
   const enableSensorsBtn = document.querySelector("#enableSensorsBtn");
   const maybeLaterBtn = document.querySelector("#maybeLaterBtn");
+  const instructionsEl = document.querySelector("#instructions");
+
+  async function disconnectFromSession() {
+    const phoneRef = ref(rtdb, `sessions/${sessionId}/phone`);
+    await set(phoneRef, { online: false });
+    onDisconnect(phoneRef).remove();
+    onDisconnect(ref(rtdb, `sessions/${sessionId}`)).remove(); // delete session when phone/game disconnects
+    connectBtn.textContent = "Connect";
+    statusEl.textContent = "Not connected";
+    instructionsEl.innerHTML = "";
+  }
 
   async function connectToSession() {
     if (!sessionId) {
@@ -66,7 +77,11 @@ document.addEventListener("DOMContentLoaded", () => {
         device: navigator.userAgent,
       });
       onDisconnect(phoneRef).set({ online: false });
-      statusEl.textContent = "Connected via Firebase. Streaming sensor data...";
+      onDisconnect(ref(rtdb, `sessions/${sessionId}`)).remove(); // delete session when phone/game disconnects
+ 
+      statusEl.textContent = "Connected to session.";
+      connectBtn.textContent = "Disconnect";
+      instructionsEl.innerHTML = "Rotate your phone to hit the blocks. <br> <strong>Tip:</strong> turn on orientation lock for better control.";
       return true;
     } catch (err) {
       statusEl.textContent = `Connect error: ${err.message}`;
@@ -128,7 +143,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (typeof screen !== "undefined" && screen.orientation?.angle != null) {
         return screen.orientation.angle;
       }
-      if (typeof window.orientation === "number") return window.orientation;
       return 0;
     }
 
@@ -148,7 +162,8 @@ document.addEventListener("DOMContentLoaded", () => {
         motionEvents: motionEventCount,
         payload,
       };
-      statsEl.textContent = JSON.stringify(debug, null, 2);
+      // MARK: debug info
+      // statsEl.textContent = JSON.stringify(debug, null, 2);
 
       set(controllerRef, payload).catch((err) => {
         console.error("Failed to write controller state:", err);
@@ -166,9 +181,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   connectBtn.addEventListener("click", async () => {
     try {
-      await ensureSensorPermissions();
-      const ok = await connectToSession();
-      if (ok) startStreaming();
+      if (connectBtn.textContent === "Disconnect") {
+        await disconnectFromSession();
+        return;
+      } else {
+        await ensureSensorPermissions();
+        const ok = await connectToSession();
+        if (ok) startStreaming();
+      }
     } catch (err) {
       statusEl.textContent = `Permission/connect error: ${err.message}`;
     }

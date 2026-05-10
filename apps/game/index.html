@@ -3,12 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phone Tennis - Game</title>
+    <title>PhoneSaber - Game</title>
     <link rel="stylesheet" href="/src/style.css" />
+    <link rel="icon" href="/assets/favicon.png" />
   </head>
   <body>
+    <div id="streak" style="display: none;">
+      <span id="streakNumber">0</span>
+    </div>
     <div id="hud">
-      <h1 style="font-size: 2rem;" id="gameTitle">Phone Tennis (Desktop Game)</h1>
+      <h1 style="font-size: 2rem;" id="gameTitle">PhoneSaber</h1>
       <div id="helpModal" class="modal" style="display: none;">
         <div class="modal-card">
           <h2>Help</h2>
@@ -21,12 +25,20 @@
         <div class="modal-card">
           <h2>Pause Game</h2>
           <p>Press P to resume the game.</p>
+          <button id="finishGameButton" class="music-form__submit" style="cursor: pointer; transition: all 0.15s ease; margin-top: 1rem;">Finish Game</button>
         </div>
       </div>
       <div id="gameFinish" class="modal" style="display: none;">
         <div class="modal-card">
           <h2>Game Finished</h2>
           <p>You scored <span id="score">0</span> points.</p>
+          <p>Best streak this round: <span id="highestStreak">0</span></p>
+          <p id="scoreAccuracy" class="score-accuracy"></p>
+          <p id="rank" class="game-finish-rank">E</p>
+          <div id="scoreAnimation" class="score-animation" aria-hidden="true">
+            <div id="scoreAnimationBar" class="score-animation-bar"></div>
+          </div>
+          <button id="restartGameButton" style="background: none; border: none; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; transition: color 0.15s ease;">Restart Game</button>
         </div>
       </div>
       <div id="joinContainer">
@@ -37,8 +49,8 @@
             >Generating secure link...</a
           >
         </p>
-        <p style="opacity: 0.7; font-size: 0.8rem">
-          Tip: press
+        <p style="margin-top: 1rem; font-size: 0.8rem">
+          Press
           <kbd style="background: #2f3b56; padding: 2px 4px; border-radius: 4px"
             >?</kbd
           >

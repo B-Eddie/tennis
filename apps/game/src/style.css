@@ -39,7 +39,7 @@ canvas {
 }
 
 #joinLink {
-  color: #8fd3ff;
+  color: gray;
   overflow-wrap: anywhere;
 }
 
@@ -156,4 +156,96 @@ canvas {
   justify-content: center;
   padding-top: 6rem;
   padding-bottom: 6rem;
+}
+
+.game-finish-rank {
+  margin: 0.15rem 0 0.35rem !important;
+  font-size: 2.75rem !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  letter-spacing: 0.06em;
+  color: #fff !important;
+  text-shadow:
+    0 0 20px rgba(120, 200, 255, 0.45),
+    0 2px 0 rgba(0, 0, 0, 0.35);
+  transform-origin: center center;
+}
+
+.score-accuracy {
+  margin: 0.35rem 0 0.5rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(143, 211, 255, 0.95) !important;
+}
+
+.score-animation {
+  width: 100%;
+  height: 14px;
+  margin: 0.25rem 0 0.75rem;
+  border-radius: 7px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.score-animation-bar {
+  width: 0%;
+  height: 100%;
+  border-radius: 7px;
+  transform-origin: left center;
+  /* Tier is set from final accuracy % via data-score-tier (see main.js). */
+  background: linear-gradient(to right, #5ad0ff, #3b82f6);
+  box-shadow:
+    0 0 14px rgba(90, 208, 255, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* Final score ≤25%: cyan → blue */
+.score-animation-bar[data-score-tier="1"] {
+  background: linear-gradient(to right, #5ad0ff, #3b82f6);
+  box-shadow:
+    0 0 14px rgba(90, 200, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* 25% < score ≤50%: blue → purple */
+.score-animation-bar[data-score-tier="2"] {
+  background: linear-gradient(to right, #3b82f6, #6b4cdb);
+  box-shadow:
+    0 0 14px rgba(120, 140, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* 50% < score ≤75%: purple → magenta */
+.score-animation-bar[data-score-tier="3"] {
+  background: linear-gradient(to right, #6b4cdb, #c026d3);
+  box-shadow:
+    0 0 14px rgba(180, 90, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* score >75%: magenta → pink */
+.score-animation-bar[data-score-tier="4"] {
+  background: linear-gradient(to right, #c026d3, #f472b6);
+  box-shadow:
+    0 0 14px rgba(255, 100, 200, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+#streak {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 1.4rem;
+  z-index: 100;
+}
+
+#streakNumber {
+  display: inline-block;
+  transform-origin: center center;
+  font-size: 2rem;
+  font-weight: 600;
+  color: hsl(270, 100%, 50%);
+  text-shadow: 0 0 10px rgba(120, 200, 255, 0.25);
 }
